@@ -28,9 +28,9 @@ func main() {
   user := ""
   password := ""
   host := "localhost"
-  port := 5173
+  port := "5432"
 
-  connStr := fmt.Sprint("user=%s password=%s host=%s port=%s sslmode=disable", user, password, host, port)
+  connStr := "user="+user+" password="+password+" host="+host+" port="+port+" sslmode=disable"
 
   r.GET("/executeSelect", func(c *gin.Context) {
     var req ExecuteSelectRequest

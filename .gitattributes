@@ -1,0 +1,1 @@
+application/electron/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron[[:space:]]Framework.framework/** filter=lfs diff=lfs merge=lfs -text

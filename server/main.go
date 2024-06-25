@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"project/routes"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
-  "github.com/gin-contrib/cors"
 )
 
 type ExecuteQueryRequest struct {
@@ -25,12 +26,17 @@ func main() {
   r := gin.Default()
   r.Use(cors.Default())
 
-  user := ""
-  password := ""
+  user := "kokot"
+  password := "122008Ri__"
   host := "localhost"
   port := "5432"
 
   connStr := "user="+user+" password="+password+" host="+host+" port="+port+" sslmode=disable"
+
+  generalDB, generalDBErr := sql.Open("postgres", connStr+" dbname=postgres")
+  if generalDBErr != nil {
+    panic(generalDBErr.Error())
+  }
 
   r.GET("/executeSelect", func(c *gin.Context) {
     var req ExecuteSelectRequest
@@ -116,7 +122,7 @@ func main() {
 
     var data []map[string]interface{}
 
-    rows, err := db.Query("SELECT datname FROM pg_database WHERE datistemplate = false;")
+    rows, err := db.Query("SELECT datname FROM pg_database WHERE datistemplate = false AND datname != 'postgres';")
     if err != nil {
         log.Fatal(err)
     }
@@ -174,6 +180,9 @@ func main() {
 
     c.JSON(http.StatusOK, gin.H{"data": data})
   })
+
+  r.POST("/createNewDatabase", func(c *gin.Context) { routes.CreateNewDatabase(c, generalDB) })
+  r.POST("/dropDatabase", func(c *gin.Context) { routes.DropDatabase(c, generalDB) })
 
   r.Run("localhost:8940")
 }

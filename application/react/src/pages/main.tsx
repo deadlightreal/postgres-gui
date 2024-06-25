@@ -1,7 +1,7 @@
 import { memo, useEffect, useState } from "react"
 import axios from "axios"
-import Database from "../types/database";
-import Table from "../types/table";
+import Database from "../types/database.tsx";
+import Table from "../types/table.tsx";
 import Config from "../config";
 
 const Main = () => {
@@ -11,6 +11,8 @@ const Main = () => {
   const [queryResults, setQueryResults] = useState<any | null>(null);
   const [createNewDatabaseWindowEnabled, setCreateNewDatabaseWindowEnabled] = useState<boolean>(false);
   const [newDatabaseName, setNewDatabaseName] = useState<string>("");
+  const [areYouSureDropDatabaseWindowEnabled, setAreYouSureDropDatabaseWindowEnabled] = useState<boolean>(false);
+  const [dropDatabaseIndex, setDropDatabaseIndex] = useState<number>(-1);
 
   const loadDatabases = () => {
     axios({
@@ -86,16 +88,32 @@ const Main = () => {
 
   return (
     <div className="w-full h-full absolute left-0 top-0">
-      <div className={`absolute w-1/3 h-1/3 left-[33.33%] top-[33.333%] z-10 rounded bg-red-200 flex flex-col items-center justify-around ${createNewDatabaseWindowEnabled ? '' : 'hidden'}`}>
-        <input defaultValue={newDatabaseName} onChange={e => setNewDatabaseName(e.target.value)} placeholder="Database name"/>
-        <button onClick={() => createNewDatabase()}>Create New Database</button>
+      <div className={`z-[5] w-full h-full absolute left-0 cursor-pointer top-0 ${createNewDatabaseWindowEnabled ? '' : 'hidden'}`} onClick={() => {
+        setCreateNewDatabaseWindowEnabled(false);
+      }}></div>
+      <div className={`absolute w-[22.5vw] h-[30%] left-[38.75vw] top-[30%] z-10 rounded-lg bg-white shadow-lg shadow-secondary flex flex-col items-center justify-between py-[1%] ${createNewDatabaseWindowEnabled ? '' : 'hidden'}`}>
+        <div className="font-bold text-xl">Create Database</div>
+        <div className="flex flex-col">
+          <input className="h-[4vh] border-2 rounded mb-[1.5vh] focus:placeholder-main focus:border-main outline-none px-2 focus:text-main" defaultValue={newDatabaseName} onChange={e => setNewDatabaseName(e.target.value)} placeholder="Database name"/>
+          <button className="px-[2vw] bg-main py-[0.8vh] rounded text-white font-bold hover:scale-[1.02] ease duration-150" onClick={() => createNewDatabase()}>Create New Database</button>
+        </div>
+      </div>
+      <div className={`absolute w-[22.5vw] h-[30%] left-[38.75vw] top-[30%] z-10 rounded-lg bg-white shadow-lg shadow-secondary flex flex-col items-center justify-between py-[1%] ${areYouSureDropDatabaseWindowEnabled ? '' : 'hidden'}`}>
+        <div className="font-bold text-center">Are you sure you want to drop database {databases == null || dropDatabaseIndex == -1 ? "" : databases[dropDatabaseIndex].name}?</div>
+        <div className="flex flex-row w-full h-[17.5%] items-center justify-center">
+          <button onClick={() => {dropDatabase(dropDatabaseIndex); setDropDatabaseIndex(-1); setAreYouSureDropDatabaseWindowEnabled(false)}} className="w-[45%] h-full bg-red-300 mr-[1.5%] font-bold text-white hover:bg-red-400 duration-200 rounded">Yes</button>
+          <button onClick={() => {setDropDatabaseIndex(-1); setAreYouSureDropDatabaseWindowEnabled(false);}} className="w-[45%] h-full bg-gray-200 ml-[1.5%] font-bold text-white hover:bg-gray-300 duration-200 rounded">No</button>
+        </div>
       </div>
       <div className="w-[15vw] h-full border-black border-2 absolute left-0 top-0 flex flex-col">
         {databases != null && databases.map((database : Database, index : number) => (
           <div onClick={() => setSelectedDatabase(index)} key={index} className="flex flex-col w-full h-fit border-1 border-black">
-            <div className={`flex items-center justify-between px-[4%] cursor-pointer ${selectedDatabase == index ? 'bg-red-200' : ''}`}>
+            <div className={`flex items-center justify-between px-[4%] cursor-pointer ${selectedDatabase == index ? 'bg-main' : ''}`}>
               <div>{database["name"]}</div>
-              <button onClick={() => dropDatabase(index)}>drop</button>
+              <button onClick={() => {
+                setDropDatabaseIndex(index);
+                setAreYouSureDropDatabaseWindowEnabled(true);
+              }}>drop</button>
             </div>
             <div className="flex flex-col">
               {database["tables"] != null && selectedDatabase == index && database["tables"].map((table : Table ,tindex : number) => (

@@ -26,8 +26,8 @@ func main() {
   r := gin.Default()
   r.Use(cors.Default())
 
-  user := "kokot"
-  password := "122008Ri__"
+  user := ""
+  password := ""
   host := "localhost"
   port := "5432"
 

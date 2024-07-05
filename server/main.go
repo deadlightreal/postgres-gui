@@ -4,12 +4,12 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"net/http"
 	"project/routes"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
+  "net/http"
 )
 
 type ExecuteQueryRequest struct {
@@ -188,5 +188,5 @@ func main() {
 
   r.GET("/loadColumns", func(c *gin.Context) { routes.LoadColumns(c, connStr) })
 
-  r.Run("localhost:8940")
+  r.Run(":8940")
 }

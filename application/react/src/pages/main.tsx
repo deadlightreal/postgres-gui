@@ -1,8 +1,13 @@
-import { memo, useEffect, useState } from "react"
+import { lazy, memo, useEffect, useState } from "react"
 import axios from "axios"
 import Database from "../types/database.tsx";
 import Table from "../types/table.tsx";
 import Config from "../config";
+import Column from "../types/column.tsx";
+import NewTableData from "../types/new_table_data.tsx";
+import NewTableColumn from "../types/new_table_column.tsx";
+const NewColumnComponent = lazy(() => import("../components/new_column_component.tsx"));
+const NewTableComponent = lazy(() => import("../components/new_table_component.tsx"));
 
 const Main = () => {
   const [databases, setDatabases] = useState<Array<Database> | null>(null);
@@ -13,6 +18,10 @@ const Main = () => {
   const [newDatabaseName, setNewDatabaseName] = useState<string>("");
   const [areYouSureDropDatabaseWindowEnabled, setAreYouSureDropDatabaseWindowEnabled] = useState<boolean>(false);
   const [dropDatabaseIndex, setDropDatabaseIndex] = useState<number>(-1);
+  const [selectedDatabaseColumn, setSelectedDatabaseColumn] = useState<number>(-1);
+  const [columns, setColumns] = useState<Array<Column> | null>();
+  const [newTableScreenEnabled, setNewTableScreenEnabled] = useState<boolean>(false);
+  const [newColumnScreenEnabled, setNewColumnScreenEnabled] = useState<boolean>(false); 
 
   const loadDatabases = () => {
     axios({
@@ -45,6 +54,16 @@ const Main = () => {
     })
   }
 
+  const createNewTable = (data: NewTableData) => {
+    if(databases == null) { return }
+    axios({
+      url: `${Config.url}/createNewTable`,
+      method: "POST",
+      headers: {'Content-Type': 'application/json'},
+      data: JSON.stringify({"database": databases[selectedDatabase].name, "new_table_data": data}),
+    })
+  }
+
   const dropDatabase = (index : number) => {
     if(databases == null) return;
     axios({
@@ -61,6 +80,45 @@ const Main = () => {
     })
   }
 
+  const loadTableColumns = (index : number) => {
+    if (databases == null) return
+
+    const name = databases[selectedDatabase].tables[index].name;
+
+    axios({
+      url: `${Config.url}/loadColumns?table=${name}&database=${databases[selectedDatabase].name}`,
+      method: "GET",
+    }).then(response => {
+      if(response.status == 200) {
+        setColumns(response.data["data"]);  
+      }
+    })
+  }
+
+  const createNewColumn = (data : NewTableColumn) => {
+    if(databases == null) return
+    axios({
+      url: `${Config.url}/createNewColumn`,
+      method: "POST",
+      headers: {'Content-Type': 'application/json'},
+      data: {"data": data, "database": databases[selectedDatabase].name, "table": databases[selectedDatabase].tables[selectedDatabaseColumn].name},
+    }).then(response => {
+      if(response.status == 200) {
+        setNewColumnScreenEnabled(false);
+        if(columns != null) {
+          const clone = [...columns];
+          const newCol : Column = {Type: data.type, Name: data.name};
+          clone.push(newCol);
+          setColumns(clone);
+        } else {
+          const newCol : Column = {Type: data.type, Name: data.name};
+          const newColumns = [newCol];
+          setColumns(newColumns);
+        }
+      }
+    })
+  }
+
   const createNewDatabase = () => {
     axios({
       url: "http://localhost:8940/createNewDatabase",
@@ -69,6 +127,7 @@ const Main = () => {
       data: JSON.stringify({"name": newDatabaseName}),
     }).then(response => {
       if(response.status == 200) {
+        setNewColumnScreenEnabled(false);
         let clone : Array<Database> = [];
         if(databases != null) {
           clone = [...databases];
@@ -88,6 +147,8 @@ const Main = () => {
 
   return (
     <div className="w-full h-full absolute left-0 top-0">
+      <NewColumnComponent enabled={newColumnScreenEnabled} onCreateNewColumn={data => createNewColumn(data)} />
+      <NewTableComponent enabled={newTableScreenEnabled} onCreateNewTable={data => createNewTable(data)} />     
       <div className={`z-[5] w-full h-full absolute left-0 cursor-pointer top-0 ${createNewDatabaseWindowEnabled ? '' : 'hidden'}`} onClick={() => {
         setCreateNewDatabaseWindowEnabled(false);
       }}></div>
@@ -107,8 +168,8 @@ const Main = () => {
       </div>
       <div className="w-[15vw] h-full border-black border-2 absolute left-0 top-0 flex flex-col">
         {databases != null && databases.map((database : Database, index : number) => (
-          <div onClick={() => setSelectedDatabase(index)} key={index} className="flex flex-col w-full h-fit border-1 border-black">
-            <div className={`flex items-center justify-between px-[4%] cursor-pointer ${selectedDatabase == index ? 'bg-main' : ''}`}>
+          <div key={index} className="flex flex-col w-full h-fit border-1 border-black">
+            <div onClick={() => selectedDatabase == index ? setSelectedDatabase(-1) : setSelectedDatabase(index)} className={`flex items-center justify-between px-[4%] hover:bg-main-light duration-200 cursor-pointer ${selectedDatabase == index ? 'bg-main' : ''}`}>
               <div>{database["name"]}</div>
               <button onClick={() => {
                 setDropDatabaseIndex(index);
@@ -117,8 +178,20 @@ const Main = () => {
             </div>
             <div className="flex flex-col">
               {database["tables"] != null && selectedDatabase == index && database["tables"].map((table : Table ,tindex : number) => (
-                <div key={tindex} className="flex items-center px-[8%]">{table["name"]}</div>
+                <>
+                  <div onClick={() => { selectedDatabaseColumn == tindex ? setSelectedDatabaseColumn(-1) : setSelectedDatabaseColumn(tindex); loadTableColumns(tindex); }} key={tindex} className={`flex items-center px-[8%] hover:bg-main-light cursor-pointer ${selectedDatabaseColumn == tindex ? "bg-main" : ""}`}>{table["name"]}</div>
+                  <div className={`flex flex-col`}>
+                    {selectedDatabaseColumn == tindex && columns != null && columns.map((column, cindex) => (
+                      <div className="hover:bg-main-light cursor-pointer px-[12%] flex flex-row items-center justify-between" key={cindex}>
+                        <div>{column.Name}</div>
+                        <div>{column.Type}</div>
+                      </div>
+                    ))}
+                    <div onClick={() => {setNewColumnScreenEnabled(true)}} className={`${selectedDatabaseColumn == tindex ? "" : "hidden"} hover:bg-main-light cursor-pointer px-[12%]`}>new column</div>
+                  </div>
+                </>
               ))}
+              <div onClick={() => setNewTableScreenEnabled(true)} className={`flex items-center px-[8%] hover:bg-main-light cursor-pointer ${selectedDatabase == index ? "" : "hidden"}`}>new table</div>
             </div>
           </div>
         ))}
@@ -142,7 +215,8 @@ const Main = () => {
             </div>
           ))}
         </div>
-        <button onClick={() => {
+        <button className="bg-main-light hover:bg-main hover:scale-[1.01] duration-200 text-white font-bold px-[3.5vw] py-[1.2vh] rounded-md"
+          onClick={() => {
           const trimmedString = query.trim();
           const words = trimmedString.split(/\s+/);
 

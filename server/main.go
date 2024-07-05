@@ -183,6 +183,10 @@ func main() {
 
   r.POST("/createNewDatabase", func(c *gin.Context) { routes.CreateNewDatabase(c, generalDB) })
   r.POST("/dropDatabase", func(c *gin.Context) { routes.DropDatabase(c, generalDB) })
+  r.POST("/createNewTable", func(c *gin.Context) { routes.CreateNewTable(c, connStr) })
+  r.POST("/createNewColumn", func(c *gin.Context) { routes.CreateNewColumn(c, connStr) })
+
+  r.GET("/loadColumns", func(c *gin.Context) { routes.LoadColumns(c, connStr) })
 
   r.Run("localhost:8940")
 }
